@@ -3,11 +3,15 @@
 import multiprocessing
 import os
 
-# Fix multiprocessing context issue with blind_watermark
-try:
-    multiprocessing.set_start_method('spawn', force=True)
-except RuntimeError:
-    pass  # Context already set
+# Monkey patch to prevent blind_watermark from setting multiprocessing method
+original_set_start_method = multiprocessing.set_start_method
+def patched_set_start_method(*args, **kwargs):
+    try:
+        return original_set_start_method(*args, **kwargs)
+    except RuntimeError:
+        pass  # Ignore "context has already been set" errors
+
+multiprocessing.set_start_method = patched_set_start_method
 
 from fastapi import FastAPI, UploadFile, File, Form, HTTPException, Request
 from fastapi.responses import JSONResponse
