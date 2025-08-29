@@ -27,8 +27,9 @@ StartLimitBurst=3
 
 # Security settings
 NoNewPrivileges=yes
-ProtectSystem=strict
+ProtectSystem=full
 ProtectHome=yes
+ReadWritePaths=/opt/invisible-watermark-api/.venv
 ReadWritePaths=/opt/invisible-watermark-api/storage
 ReadWritePaths=/tmp
 PrivateTmp=yes
