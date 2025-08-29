@@ -1,11 +1,20 @@
 # main.py
 # FastAPI: blind_watermark ile embed + verify (server-side persist + URL)
+import multiprocessing
+import os
+
+# Fix multiprocessing context issue with blind_watermark
+try:
+    multiprocessing.set_start_method('spawn', force=True)
+except RuntimeError:
+    pass  # Context already set
+
 from fastapi import FastAPI, UploadFile, File, Form, HTTPException, Request
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 import uvicorn
-import os, base64, uuid, tempfile
+import base64, uuid, tempfile
 from typing import Dict, Any
 import numpy as np
 import cv2
