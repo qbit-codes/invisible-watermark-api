@@ -6,3 +6,4 @@ numpy==1.24.3
 opencv-python==4.8.1.78
 blind-watermark==0.4.0
 python-dotenv==1.0.0
+trustmark==0.8.0

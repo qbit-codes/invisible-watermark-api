@@ -144,20 +144,38 @@ class BlindWatermarkAdapter(WatermarkAdapter):
 class TrustmarkAdapter(WatermarkAdapter):
     """Adapter for Adobe Trustmark (placeholder implementation)"""
     
-    def __init__(self):
-        # Placeholder for trustmark configuration
-        pass
+    def __init__(self, verbose=True, model_type='Q'):
+        self.verbose = verbose
+        self.model_type = model_type
     
     def embed(self, image_path: str, watermark_text: str, output_path: str) -> Dict[str, Any]:
-        # TODO: Implement Adobe Trustmark embedding
-        raise NotImplementedError("Adobe Trustmark integration not yet implemented")
-    
+        from trustmark import TrustMark
+        from PIL import Image
+
+        tm = TrustMark(verbose=self.verbose, model_type=self.model_type)
+        cover = Image.open(image_path).convert('RGB')
+        tm.encode(cover, watermark_text).save(output_path)
+
+        return {
+            "wm_len": 0,
+            "wm_text": watermark_text
+        }
+
+
     def extract(self, image_path: str, metadata: Dict[str, Any]) -> Optional[str]:
-        # TODO: Implement Adobe Trustmark extraction
-        raise NotImplementedError("Adobe Trustmark integration not yet implemented")
+        from trustmark import TrustMark
+        from PIL import Image
+
+        tm = TrustMark(verbose=self.verbose, model_type=self.model_type)
+        cover = Image.open(image_path).convert('RGB')
+        wm_secret, wm_present, wm_schema = tm.decode(cover)
+
+        if wm_present:
+            return wm_secret
+        else:
+            return None
     
     def supports_recovery(self) -> bool:
-        # TODO: Check if Trustmark supports recovery
         return False
     
     def recover_and_extract(self, image_path: str, reference_path: str, metadata: Dict[str, Any]) -> Tuple[Optional[str], Dict[str, Any]]:
