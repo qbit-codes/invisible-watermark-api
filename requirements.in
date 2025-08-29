@@ -1,0 +1,11 @@
+fastapi
+uvicorn[standard]
+python-multipart
+pydantic
+numpy
+opencv-python
+blind-watermark
+python-dotenv
+trustmark
+setuptools
+wheel
