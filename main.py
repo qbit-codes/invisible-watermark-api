@@ -46,6 +46,7 @@ app = FastAPI(
 
 # --- storage klasörü ve statik servis (kalıcı dosyalar için) ---
 os.makedirs("storage/embeds", exist_ok=True)
+os.makedirs("storage/models", exist_ok=True)
 app.mount("/files", StaticFiles(directory="storage"), name="files")
 
 # --- In-memory DB (demo) ---

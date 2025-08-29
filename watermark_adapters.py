@@ -147,6 +147,26 @@ class TrustmarkAdapter(WatermarkAdapter):
     def __init__(self, verbose=True, model_type='Q'):
         self.verbose = verbose
         self.model_type = model_type
+        
+        # Configure trustmark to use writable cache directory
+        cache_dir = os.getenv('TRUSTMARK_CACHE_DIR')
+        if cache_dir:
+            os.makedirs(cache_dir, exist_ok=True)
+            # Monkey patch trustmark's model path before importing
+            self._patch_trustmark_paths(cache_dir)
+    
+    def _patch_trustmark_paths(self, cache_dir):
+        """Patch trustmark library to use custom model directory"""
+        try:
+            import trustmark.trustmark as tm
+            # Override the default model paths
+            if hasattr(tm, 'LOCATIONS'):
+                for key in tm.LOCATIONS:
+                    if 'models/' in tm.LOCATIONS[key]:
+                        filename = os.path.basename(tm.LOCATIONS[key])
+                        tm.LOCATIONS[key] = os.path.join(cache_dir, filename)
+        except ImportError:
+            pass  # trustmark not yet imported
     
     def embed(self, image_path: str, watermark_text: str, output_path: str) -> Dict[str, Any]:
         from trustmark import TrustMark

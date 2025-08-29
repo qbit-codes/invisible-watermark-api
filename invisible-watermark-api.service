@@ -14,6 +14,7 @@ Environment=PYTHONPATH=/opt/invisible-watermark-api
 Environment=WATERMARK_ADAPTER=trustmark
 Environment=WM_PASS_IMG=1
 Environment=WM_PASS_WM=1
+Environment=TRUSTMARK_CACHE_DIR=/opt/invisible-watermark-api/storage/models
 ExecStart=/opt/invisible-watermark-api/.venv/bin/python main.py
 ExecReload=/bin/kill -HUP $MAINPID
 KillMode=mixed
