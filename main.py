@@ -20,7 +20,7 @@ load_dotenv()
 WM_PASS_IMG = int(os.getenv("WM_PASS_IMG", "1"))
 WM_PASS_WM  = int(os.getenv("WM_PASS_WM", "1"))
 
-app = FastAPI(title="Blind Watermark Demo")
+app = FastAPI(title="Invisible Watermark API")
 
 # --- storage klasörü ve statik servis (kalıcı dosyalar için) ---
 os.makedirs("storage/embeds", exist_ok=True)
