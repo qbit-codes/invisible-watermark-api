@@ -1,0 +1,55 @@
+[Unit]
+Description=Invisible Watermark API Service
+After=network.target
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=exec
+User=watermark
+Group=watermark
+WorkingDirectory=/opt/invisible-watermark-api
+Environment=PATH=/opt/invisible-watermark-api/.venv/bin
+Environment=PYTHONPATH=/opt/invisible-watermark-api
+Environment=WATERMARK_ADAPTER=trustmark
+Environment=WM_PASS_IMG=1
+Environment=WM_PASS_WM=1
+ExecStart=/opt/invisible-watermark-api/.venv/bin/python main.py
+ExecReload=/bin/kill -HUP $MAINPID
+KillMode=mixed
+KillSignal=SIGINT
+TimeoutStopSec=30
+Restart=always
+RestartSec=5
+StartLimitInterval=60
+StartLimitBurst=3
+
+# Security settings
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+ReadWritePaths=/opt/invisible-watermark-api/storage
+ReadWritePaths=/tmp
+PrivateTmp=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+RestrictRealtime=yes
+RestrictSUIDSGID=yes
+SystemCallArchitectures=native
+
+# Network restrictions
+PrivateNetwork=no
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+
+# Resource limits
+LimitNOFILE=65536
+LimitNPROC=4096
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=watermark-api
+
+[Install]
+WantedBy=multi-user.target
