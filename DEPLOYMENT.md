@@ -42,6 +42,9 @@ cd /opt/invisible-watermark-api
 # Create virtual environment as the watermark user
 sudo -u watermark python3 -m venv .venv
 
+# Upgrade pip and install build tools first (Python 3.12+ compatibility)
+sudo -u watermark .venv/bin/pip install --upgrade pip setuptools wheel
+
 # Install dependencies
 sudo -u watermark .venv/bin/pip install -r requirements.txt
 ```
@@ -227,6 +230,9 @@ sudo chmod -R 755 /opt/invisible-watermark-api/storage
 
 **Python/dependency errors:**
 ```bash
+# For Python 3.12+ distutils issues, upgrade build tools first
+sudo -u watermark /opt/invisible-watermark-api/.venv/bin/pip install --upgrade pip setuptools wheel
+
 # Test virtual environment
 sudo -u watermark /opt/invisible-watermark-api/.venv/bin/python -c "import trustmark, blind_watermark"
 
@@ -281,7 +287,8 @@ sudo cp -r /opt/invisible-watermark-api /opt/invisible-watermark-api.backup
 sudo cp -r /path/to/new/version/* /opt/invisible-watermark-api/
 sudo chown -R watermark:watermark /opt/invisible-watermark-api
 
-# Update dependencies if needed
+# Update dependencies if needed (Python 3.12+ compatibility)
+sudo -u watermark /opt/invisible-watermark-api/.venv/bin/pip install --upgrade pip setuptools wheel
 sudo -u watermark /opt/invisible-watermark-api/.venv/bin/pip install -r requirements.txt
 
 # Restart service
