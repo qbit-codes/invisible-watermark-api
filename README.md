@@ -69,15 +69,34 @@ Verify and extract watermark from an image.
 **Response:**
 - `watermark_found`: Boolean indicating if watermark was detected
 - `matches_expected`: Boolean indicating if extracted watermark matches original
-- `status`: Status description ("same", "modified_but_watermark_intact", or "tampered_or_not_watermarked")
 - `extracted_watermark`: The extracted watermark text
-- `phash_distance`: Perceptual hash distance from original
+- `details`: Additional recovery/processing details
 
 ## Environment Variables
 
-- `WM_PASS_IMG`: Password for image processing (default: 1)
-- `WM_PASS_WM`: Password for watermark processing (default: 1)
+- `WATERMARK_ADAPTER`: Watermarking library to use ("trustmark" or "blind_watermark", default: "trustmark")
+- `WM_PASS_IMG`: Password for image processing when using blind_watermark (default: 1)
+- `WM_PASS_WM`: Password for watermark processing when using blind_watermark (default: 1)
+
+## Switching Watermark Libraries
+
+The application supports multiple watermarking backends through an adapter pattern:
+
+### Adobe Trustmark (Default)
+```env
+WATERMARK_ADAPTER=trustmark
+```
+Adobe's content authenticity solution (implementation pending).
+
+### Blind Watermark
+```env
+WATERMARK_ADAPTER=blind_watermark
+WM_PASS_IMG=1
+WM_PASS_WM=1
+```
+Uses the open-source blind-watermark library with configurable passwords.
 
 ## Credits
 
-This project uses the [blind-watermark](https://github.com/guofei9987/blind_watermark) library for core watermarking functionality.
+- **Adobe Trustmark**: Content authenticity and provenance solution
+- **blind-watermark**: [Open-source blind watermarking library](https://github.com/guofei9987/blind_watermark)
