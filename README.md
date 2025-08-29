@@ -41,7 +41,9 @@ cp .env.example .env
 python main.py
 ```
 
-The API will be available at `http://localhost:8000` with interactive documentation at `http://localhost:8000/docs`.
+The API will be available internally at `http://localhost:8001` with interactive documentation at `http://localhost:8001/docs`.
+
+**Note**: This API runs internally and should not be exposed to external traffic. Use the Node.js/Express integration (see `INTEGRATION.md`) for external access.
 
 ## API Endpoints
 

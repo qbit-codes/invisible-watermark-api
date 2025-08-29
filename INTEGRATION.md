@@ -2,10 +2,16 @@
 
 This guide shows how to integrate a Node.js/Express backend with the Invisible Watermark API.
 
+## Architecture Overview
+
+- **Watermark API**: Runs internally on `http://localhost:8001` (not exposed to external traffic)
+- **Node.js Backend**: Acts as a gateway/proxy, handling external requests
+- **Security**: Only the Node.js backend can communicate with the watermarking service
+
 ## Prerequisites
 
-- Node.js/Express backend application
-- The Invisible Watermark API running on `http://localhost:8000`
+- Node.js/Express backend application  
+- The Invisible Watermark API running internally on `http://localhost:8001`
 - Required npm packages: `axios`, `form-data`, `multer` (for file uploads)
 
 ## Installation
@@ -32,7 +38,7 @@ async function embedWatermark(imagePath, watermarkText = null) {
             form.append('wm_text', watermarkText);
         }
 
-        const response = await axios.post('http://localhost:8000/embed', form, {
+        const response = await axios.post('http://localhost:8001/embed', form, {
             headers: {
                 ...form.getHeaders(),
             },
@@ -57,7 +63,7 @@ async function verifyWatermark(imagePath, watermarkId, tryRecover = true) {
         form.append('watermark_id', watermarkId);
         form.append('try_recover', tryRecover.toString());
 
-        const response = await axios.post('http://localhost:8000/verify', form, {
+        const response = await axios.post('http://localhost:8001/verify', form, {
             headers: {
                 ...form.getHeaders(),
             },
@@ -103,8 +109,8 @@ const upload = multer({
     }
 });
 
-// Watermarking API base URL
-const WATERMARK_API_BASE = 'http://localhost:8000';
+// Watermarking API base URL (internal service)
+const WATERMARK_API_BASE = 'http://localhost:8001';
 
 // Route: Embed watermark
 app.post('/api/watermark/embed', upload.single('image'), async (req, res) => {
@@ -198,6 +204,7 @@ app.post('/api/watermark/verify', upload.single('image'), async (req, res) => {
 app.get('/api/watermark/image/:watermark_id', async (req, res) => {
     try {
         const { watermark_id } = req.params;
+        // Access internal watermark service
         const imageUrl = `${WATERMARK_API_BASE}/files/embeds/${watermark_id}.png`;
         
         const response = await axios.get(imageUrl, {
@@ -231,7 +238,7 @@ app.use((error, req, res, next) => {
 
 app.listen(port, () => {
     console.log(`Express server running on port ${port}`);
-    console.log(`Make sure Watermark API is running on ${WATERMARK_API_BASE}`);
+    console.log(`Connecting to internal Watermark API at ${WATERMARK_API_BASE}`);
 });
 ```
 
@@ -308,7 +315,7 @@ app.listen(port, () => {
 
 ```javascript
 class WatermarkService {
-    constructor(apiBaseUrl = 'http://localhost:8000') {
+    constructor(apiBaseUrl = 'http://localhost:8001') {
         this.apiBaseUrl = apiBaseUrl;
     }
 
@@ -376,8 +383,8 @@ async function example() {
 ### Environment Variables (.env)
 
 ```env
-# Watermark API Configuration
-WATERMARK_API_URL=http://localhost:8000
+# Watermark API Configuration (internal service)
+WATERMARK_API_URL=http://localhost:8001
 UPLOAD_DIR=uploads/
 MAX_FILE_SIZE=10485760  # 10MB in bytes
 ```
@@ -387,7 +394,7 @@ MAX_FILE_SIZE=10485760  # 10MB in bytes
 ```javascript
 require('dotenv').config();
 
-const WATERMARK_API_BASE = process.env.WATERMARK_API_URL || 'http://localhost:8000';
+const WATERMARK_API_BASE = process.env.WATERMARK_API_URL || 'http://localhost:8001';
 const UPLOAD_DIR = process.env.UPLOAD_DIR || 'uploads/';
 const MAX_FILE_SIZE = parseInt(process.env.MAX_FILE_SIZE) || 10 * 1024 * 1024;
 
@@ -470,11 +477,34 @@ describe('Watermark API Integration', () => {
 });
 ```
 
+## Deployment Architecture
+
+```
+┌─────────────┐    HTTP/HTTPS     ┌─────────────────┐    Internal     ┌──────────────────┐
+│   Internet  │ ─────────────────→ │  Node.js/Express│ ──────────────→ │ Watermark API    │
+│   Clients   │                   │   (Port 3000)   │    (localhost)  │   (Port 8001)    │
+└─────────────┘                   └─────────────────┘                 └──────────────────┘
+                                           │                                     │
+                                           │                                     │
+                                    ┌─────────────┐                     ┌─────────────┐
+                                    │   Upload    │                     │  Trustmark  │
+                                    │ Processing  │                     │   Service   │
+                                    └─────────────┘                     └─────────────┘
+```
+
+### Network Configuration
+- **External Access**: Only Node.js Express server (port 3000) is exposed
+- **Internal Service**: Watermark API (port 8001) runs on localhost only
+- **Security**: No direct external access to the watermarking service
+- **Communication**: Express server acts as the only gateway to watermarking functionality
+
 ## Notes
 
-1. **File Cleanup**: Always clean up uploaded temporary files after processing
-2. **Error Handling**: Implement comprehensive error handling for network and file operations
-3. **Security**: Validate file types and sizes to prevent abuse
-4. **Performance**: Consider implementing request queuing for high-volume scenarios
-5. **Monitoring**: Add logging and monitoring for API requests
-6. **Scaling**: For production, consider using a reverse proxy and load balancing
+1. **Internal Service**: The watermark API runs on `localhost:8001` and is not accessible from external networks
+2. **Gateway Pattern**: Node.js backend acts as the public-facing gateway and proxy
+3. **File Cleanup**: Always clean up uploaded temporary files after processing
+4. **Error Handling**: Implement comprehensive error handling for network and file operations
+5. **Security**: Validate file types and sizes to prevent abuse, API is protected by the Node.js layer
+6. **Performance**: Consider implementing request queuing for high-volume scenarios
+7. **Monitoring**: Add logging and monitoring for both Express and watermarking API requests
+8. **Firewall**: Configure firewall rules to ensure port 8001 is only accessible locally
