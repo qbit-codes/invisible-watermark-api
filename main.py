@@ -40,7 +40,7 @@ os.makedirs("storage/embeds", exist_ok=True)
 app.mount("/files", StaticFiles(directory="storage"), name="files")
 
 # --- In-memory DB (demo) ---
-# watermark_id -> {"wm_text": str, "wm_len": int, "phash": str, "shape": (h,w), "file_path": str}
+# watermark_id -> {"wm_text": str, "wm_len": int, "shape": (h,w), "file_path": str}
 DB: Dict[str, Dict[str, Any]] = {}
 
 # --- Utils ---
@@ -58,22 +58,6 @@ def imencode_png_to_base64(img_bgr: np.ndarray) -> str:
         raise HTTPException(status_code=500, detail="PNG encoding failed")
     return base64.b64encode(buf.tobytes()).decode("ascii")
 
-def phash(img_bgr: np.ndarray) -> str:
-    """Simple pHash: resize(32x32)->gray->DCT->8x8->median->bits->hex(16 chars)"""
-    img_gray = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2GRAY)
-    small = cv2.resize(img_gray, (32, 32), interpolation=cv2.INTER_AREA)
-    dct = cv2.dct(np.float32(small))
-    block = dct[:8, :8]
-    med = np.median(block[1:])  # skip DC term
-    bits = (block > med).astype(np.uint8).flatten()
-    v = 0
-    for b in bits:
-        v = (v << 1) | int(b)
-    return f"{v:016x}"
-
-def hamming_distance_hex(a: str, b: str) -> int:
-    xa, xb = int(a, 16), int(b, 16)
-    return (xa ^ xb).bit_count()
 
 def save_temp_png(img_bgr: np.ndarray) -> str:
     fd, path = tempfile.mkstemp(suffix=".png")
@@ -92,9 +76,7 @@ class EmbedResponse(BaseModel):
 class VerifyResponse(BaseModel):
     watermark_found: bool
     matches_expected: bool
-    status: str
     extracted_watermark: str | None
-    phash_distance: int | None
     details: dict | None
 
 # --- Endpoints ---
@@ -127,14 +109,13 @@ async def embed_endpoint(
     bwm.embed(out_path)
     wm_len = len(bwm.wm_bit)
 
-    # 5) Read embedded result, compute pHash
+    # 5) Read embedded result
     embedded = cv2.imread(out_path, cv2.IMREAD_COLOR)
     if embedded is None:
         # temizlik
         if os.path.exists(in_path): os.remove(in_path)
         if os.path.exists(out_path): os.remove(out_path)
         raise HTTPException(status_code=500, detail="Embedded image not readable")
-    ref_ph = phash(embedded)
 
     # 6) Create watermark_id & persist embedded PNG on server
     watermark_id = str(uuid.uuid4())
@@ -149,7 +130,6 @@ async def embed_endpoint(
     DB[watermark_id] = {
         "wm_text": wm_text,
         "wm_len": wm_len,
-        "phash": ref_ph,
         "shape": (h, w),
         "file_path": persist_path,
     }
@@ -187,7 +167,6 @@ async def verify_endpoint(
 
     expected_text = meta["wm_text"]
     wm_len        = meta["wm_len"]
-    ref_phash     = meta["phash"]
     ori_shape     = meta["shape"]          # (h, w)
     ref_path      = meta.get("file_path")  # persisted reference
 
@@ -235,13 +214,8 @@ async def verify_endpoint(
     elif (extracted != expected_text) and try_recover and not (ref_path and os.path.exists(ref_path)):
         details["recovery_error"] = "Reference embedded PNG not found on server."
 
-    # 4) Decide status & pHash distance
-    dist = hamming_distance_hex(ref_phash, phash(edited))
+    # 4) Decide result
     watermark_found = (extracted == expected_text)
-    if watermark_found:
-        status = "same" if dist == 0 else "modified_but_watermark_intact"
-    else:
-        status = "tampered_or_not_watermarked"
 
     # 5) Cleanup
     if os.path.exists(tmp_in): os.remove(tmp_in)
@@ -251,9 +225,7 @@ async def verify_endpoint(
     return VerifyResponse(
         watermark_found=bool(watermark_found),
         matches_expected=bool(watermark_found),
-        status=status,
         extracted_watermark=extracted if watermark_found else None,
-        phash_distance=int(dist),
         details=details if details else None
     )
 
